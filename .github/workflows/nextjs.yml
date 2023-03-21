@@ -27,7 +27,7 @@ jobs:
       - name: Build Next.js app
         run: pnpm run build
         env:
-          URL_PREFIX: translate-multi
+          URL_PREFIX: translate-multi-gh
 
       - name: Export Next.js app
         run: pnpm run export

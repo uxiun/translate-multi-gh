@@ -1,4 +1,4 @@
-"use client"
+// "use client"
 
 import { appConfigAtom, atomLangSpecifiConfig, defaultAppConfig, defaultLangSpecifiConfig, LangSpecifiConfig } from "@/ts/jotai";
 import { Box, Checkbox, FormControl, FormControlLabel, FormGroup, InputLabel, MenuItem, Select } from "@mui/material";

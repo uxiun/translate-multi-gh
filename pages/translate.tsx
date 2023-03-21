@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 
 import * as React from 'react';
 import { Theme, useTheme } from '@mui/material/styles';
