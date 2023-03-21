@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import styles from '@/styles/Home.module.css'
 import Config from './config'
 import Translate from './translate'
+import HistoryCompo from './history'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -12,6 +13,7 @@ export default function Home() {
     <main className={styles.main}>
       <Config/>
       <Translate/>
+      <HistoryCompo/>
     </main>
   )
 }
