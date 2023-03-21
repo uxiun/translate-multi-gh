@@ -41,7 +41,10 @@ const LangSpecifiConfig: React.FC = () => {
       ...specificonfig,
       zh: {
         ...specificonfig.zh,
-        pinyin: useWatchValue.zh?.pinyin ?? specificonfig.zh.pinyin
+        ...useWatchValue,
+        pinyin: useWatchValue.zh?.pinyin ?? specificonfig.zh.pinyin,
+        pinyin_display: useWatchValue.zh?.pinyin_display ?? specificonfig.zh.pinyin_display
+        ,pinyin_position: useWatchValue.zh?.pinyin_position ?? specificonfig.zh.pinyin_position
       }
     })
   }, [useWatchValue])

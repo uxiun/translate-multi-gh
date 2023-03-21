@@ -1,6 +1,15 @@
 .targetLang {
   margin-right: 24px;
+  max-width: 200px;
+  text-align: right;
 }
 .textinput {
   max-width: 50%;
+}
+.flex {
+  display: flex;
+}
+.resultbox {
+  display: grid;
+  grid-template-columns: auto 1fr;
 }

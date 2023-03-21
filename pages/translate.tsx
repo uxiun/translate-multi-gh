@@ -12,13 +12,13 @@ import { Box, Button, MenuItem, Select, TextField } from "@mui/material"
 import { Controller, useForm } from "react-hook-form"
 import { appConfigAtom, atomLangSpecifiConfig, availableLanguagesAtom, codeToJpnameAtom, defaultInput, getLanguageName, LangSpecifiConfig, nonAlphabeticalLanguageMenuItem, TranslateConfig, translateCurrentAtom, TranslateLanguages } from "@/ts/jotai";
 import cld from "cld";
-import { APIURL, AppScriptResponse, emptyInput, TranslateMulti, translatePerLine } from "@/ts/k";
+import { APIURL, AppScriptResponse, emptyInput, translateIntoArray, TranslateMulti, translatePerLine } from "@/ts/k";
 import { translateUI } from "@/ts/tagengo";
 import { useAtom } from "jotai";
 import SelectInput from "@mui/material/Select/SelectInput";
 import ISO6391 from "iso-639-1"
 import fetcher from './api/fetcher';
-import { gate, urlAddQuery } from '@/ts/util';
+import { concatBy, concatLines, gate, urlAddQuery, zip } from '@/ts/util';
 import styles from "../styles/translate.module.css"
 
 export default function Translate() {
@@ -268,10 +268,16 @@ const OutputWindowParallel: React.FC = () => {
     if (transAtom.text.length === 0) return
     const starttime = performance.now()
 
+    //not have to filter
     transAtom.to.filter(code => availableLanguages.includes(code)).forEach((target, i) => {
-      translatePerLine(transAtom)(target).then(res => {
-        console.log(res)
-        translations.set(target, res)
+      // translatePerLine(transAtom)(target).then(res => {
+      //   console.log("translatePerLine return", res)
+      //   translations.set(target, res)
+      //   setTranslations(new Map([...translations]))
+      // })
+      Promise.all(translateIntoArray(transAtom)(target)).then(res => {
+        console.log("translateIntoArray return", res)
+        translations.set(target, concatLines(res))
         setTranslations(new Map([...translations]))
       })
     })
@@ -314,15 +320,16 @@ const OutputWindowParallel: React.FC = () => {
   ? <></>
   : (
     <div className="output-window">
-      <div>{"multi\nline? output"}</div>
-      <div>
+      <h1>{"output"}</h1>
+      <div className={styles.resultbox}>
         {Array.from(transAtom.to).map(lang => {
           const displayName = getLangName(lang)(appconfig.lang)+` (${lang})`
           // get_translation(lang)
           return(
-            <div className="output-block" key={lang}>
+            <>
+            {/* <div className="target-and-result" key={lang}>*/}
               <div className={styles.targetLang}>{displayName}</div>
-              <div className="translation">
+              <div className="units">
                 <MultiLineTranslation
                   lang={lang}
                   text={translations.get(lang) ?? "loading..."}
@@ -332,7 +339,7 @@ const OutputWindowParallel: React.FC = () => {
                 translations={translations}
                 lang={lang}
               /> */}
-            </div>
+            </>
           )
         })}
       </div>
@@ -347,35 +354,69 @@ type MLTs = {
 const MultiLineTranslation: React.FC<MLTs> = ({text, lang}) => {
   const [specificonfig] = useAtom(atomLangSpecifiConfig)
   const [appconfig] = useAtom(appConfigAtom)
+  const TranslateUnit: FC<{line: string}> = ({line}) =>
+    <div className='unit'>
+      {
+      // line.match(/^\s*$/)
+      // ? line
+      // :
+      SpecificOutput(specificonfig)(lang, line)}
+    </div>
   return appconfig.result.multiline
   ? <>
-    {text.split("\n").map((line,i) =>
-      <div key={i}>{
-        SpecificOutput(specificonfig)(lang, line)
-      }</div> )}
+    {text.split("\n").map((line,i) => <TranslateUnit line={line} key={i}/> )}
   </>
-  : <>{text}</>
+  : <TranslateUnit line={text}/>
 }
 
+
+
 import {pinyin} from "pinyin-pro"
-const SpecificOutput = (config: LangSpecifiConfig) => function NamedSpecificOutput(lang: string, line: string) {
-  return ["zh", "zh-CN", "zh-TW"].includes(lang)
-  ? (config.zh.pinyin
-    ? <>
-      <div className='line'>{line}</div>
-      <div className="pinyin">{pinyin(line,
-      {
-        nonZh: "consecutive"
-      }
-      // {
-      //   segment: "segmentit",
-      //   group: true,
-      // }
-      )}</div>
-    </>
+const SpecificOutput = (config1: LangSpecifiConfig) => function NamedSpecificOutput(lang: string, line: string) {
+  const [specificonfig] = useAtom(atomLangSpecifiConfig)
+  const config = specificonfig
+  return (
+    ["zh", "zh-CN", "zh-TW"].includes(lang)
+    ? (config.zh.pinyin
+      ? config.zh.pinyin_display == "line"
+        ?
+        <>
+          {config.zh.pinyin_position == "below"
+          ?
+          <>
+          <div className='line'>{line}</div>
+          <div className="pinyin">{pinyin(line, {nonZh: "consecutive"})}</div>
+          </>
+          :
+          <>
+          <div className="pinyin">{pinyin(line, {nonZh: "consecutive"})}</div>
+          <div className='line'>{line}</div>
+          </>
+          }
+        </>
+        :<div className={styles.flex}>{
+          zip(line.trim(), pinyin(line.trim(), {
+            nonZh: "consecutive",
+            type: "array",
+          }))
+          .map(([han, py])=> <div key={han} className='ziyin'>
+            {config.zh.pinyin_position == "below"
+            ?
+            <>
+              <div className='hanzi'>{han as string}</div>
+              <div className='pinyin'>{py}</div>
+            </>
+            :<>
+              <div className='pinyin'>{py}</div>
+              <div className='hanzi'>{han as string}</div>
+            </>
+          }
+          </div>)
+        }</div>
+      : <>{line}</>
+    )
     : <>{line}</>
   )
-  : <>{line}</>
 }
 
 // type TranslationListItemProps = {

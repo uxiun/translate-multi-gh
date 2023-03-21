@@ -1,3 +1,17 @@
+export const zip = <T,U>(ts: T[]|string, us: U[]|string) => {
+  const newlist: [T|string,U|string][] = [];
+  [...ts].forEach((t,i)=>{
+    const u = us.at(i)
+    if (u) {
+      newlist.push([t, u])
+    } else return newlist
+  })
+  return newlist
+}
+
+export const concatBy = (delemeter: string) => (strings: string[]) => strings.reduce((s, k) => s + delemeter + k, "").slice(delemeter.length)
+export const concatLines = concatBy("\n")
+
 export const ifelse = <T>(t: T) => (fn: (t: T)=>boolean) => <U>(fif: (t: T) => U) => (felse: (t: T) => U): U => fn(t) ? fif(t) : felse(t)
 
 export const anywayAt = <T>(failedReturn: T) => (list: T[]) => (index: number) =>
