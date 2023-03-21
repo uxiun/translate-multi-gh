@@ -399,7 +399,7 @@ const SpecificOutput = (config1: LangSpecifiConfig) => function NamedSpecificOut
             nonZh: "consecutive",
             type: "array",
           }))
-          .map(([han, py])=> <div key={han} className='ziyin'>
+          .map(([han, py])=> <div key={han as string} className='ziyin'>
             {config.zh.pinyin_position == "below"
             ?
             <>
