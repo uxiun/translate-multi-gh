@@ -64,11 +64,10 @@ type PropsClientOnly = {
 const DisplayWithPinyin: FC<PropsClientOnly> = ({text}) => {
   const [config] = useAtom(atomLangSpecifiConfig)
   const {data, error, isLoading} = useSWR<PinyinPairs>("/api/chinese/"+text, fetcher)
-  if (error) {
-    console.error(error)
-    return <>load failed</>
-  }
-  if (isLoading) return(
+
+  if (isLoading || error) {
+    if (error) console.error(error)
+    return(
     config.zh.pinyin
     ? config.zh.pinyin_display == "line"
       ?
@@ -92,6 +91,7 @@ const DisplayWithPinyin: FC<PropsClientOnly> = ({text}) => {
       </div>
     : <>{text}</>
   )
+  }
 
   console.log("data", data)
   const {
