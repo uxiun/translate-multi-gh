@@ -303,22 +303,29 @@ const OutputWindowParallel: React.FC = () => {
       // })
       Promise.all(translateIntoArray(transAtom)(target)).then(res => {
         console.log("translateIntoArray return", res)
-        translations.set(target, concatLines(res))
-        history.set(transAtom.text,
-          {
-            srclang: transAtom.from.length==0? undefined: transAtom.from,
-            trans: new Map([
-            ...history.get(transAtom.text)?.trans??[],
-            ...translations,
-          ])
-          })
-        setTranslations(new Map([...translations]))
-        setHistory(new Map([...history]))
+        setTranslations(t => {
+          t.set(target, concatLines(res))
+          return new Map([...t])
+        })
+        setHistory(h => {
+          h.set(transAtom.text,
+            {
+              srclang: transAtom.from.length==0? undefined: transAtom.from,
+              trans: new Map([
+                ...h.get(transAtom.text)?.trans??[],
+                [target, concatLines(res)],
+              ])
+            })
+          return new Map([...h])
+        })
       })
     })
     const endtime = performance.now()
     console.log("performance time", endtime-starttime)
-  }, [transAtom])
+  }, [transAtom
+  , availableLanguages
+  , setHistory
+  ])
 
   const get_translation = (target: string) => {
     const memo = translations??new Map().get(target)

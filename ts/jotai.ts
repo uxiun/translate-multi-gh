@@ -39,7 +39,7 @@ export const defaultAppConfig: AppConfig = {
     multiline: false
   },
   history: {
-    displayLimit: 3
+    displayLimit: 30
   }
 }
 export const appConfigAtom = atom

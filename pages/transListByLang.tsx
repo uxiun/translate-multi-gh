@@ -1,4 +1,4 @@
-import { appConfigAtom, atomHistory, atomLangSpecifiConfig, getLanguageName, TranslateHistory } from "@/ts/jotai";
+import { appConfigAtom, atomHistory, atomLangSpecifiConfig, getLanguageName, TranslateHistory, TranslateHistoryEntity } from "@/ts/jotai";
 import { GoogleTranslateLanguageCode } from "@/ts/k";
 import { atom, useAtom } from "jotai";
 import { pinyin } from "pinyin-pro";
@@ -8,16 +8,16 @@ import { useWatch, useForm, Controller, Path } from "react-hook-form";
 import { Box, Checkbox, FormControl, FormControlLabel } from "@mui/material";
 
 type Props = {
-  listsrc: TranslateHistory
+  listsrc: [string, TranslateHistoryEntity][]
   limit: number
 }
-const showAtom = atom<Map<string, boolean>>(new Map())
+// const showAtom = atom<Map<string, boolean>>(new Map())
 
 const TransListByLang: FC<Props> = ({listsrc, limit}) => {
-
+  const listsrc_noBuildError = listsrc??[]
   return(
     <div className="sessions">
-      {[...listsrc].slice(Math.max(0, listsrc.size - limit)).reverse().map(([srctext, {srclang, trans}], isession) =>
+      {[...listsrc_noBuildError].slice(Math.max(0, listsrc_noBuildError.length - limit)).reverse().map(([srctext, {srclang, trans}], isession) =>
         <div key={isession}>
         <EachEntity
           srclang={srclang} srctext={srctext} trans={trans}/>
@@ -47,7 +47,7 @@ const EachEntity: FC<EachProps> = ({srclang, srctext, trans}) => {
   const useWatchValue = useWatch({control})
   useEffect(()=>{
     console.log("useWatchValue", useWatchValue)
-    setShowState(useWatchValue.show??showState)
+    setShowState(s => useWatchValue.show??s)
   }, [useWatchValue])
 
   const MUIcheckbox: FC<{name: Path<Form>, checked: boolean}> = function NamedMUIcheckbox({name, checked}) {return (

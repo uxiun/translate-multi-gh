@@ -10,10 +10,12 @@ const HistoryCompo: FC = () => {
   const [historyAtom] = useAtom(atomHistory)
   const [showSetting, setShowSetting] = useAtom(showAtom)
   const [appconfig] = useAtom(appConfigAtom)
+  const listsrc = [...historyAtom]
+  listsrc.pop()
   return(
     <div className="history">
       <h1>{translateUI(appconfig.lang)("history")}</h1>
-      <TransListByLang listsrc={historyAtom} limit={appconfig.history.displayLimit} />
+      <TransListByLang listsrc={listsrc} limit={appconfig.history.displayLimit} />
     </div>
   )
 }
