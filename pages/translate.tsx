@@ -1,6 +1,7 @@
 // "use client";
 
 import * as React from 'react';
+import { GetServerSideProps } from 'next';
 import { Theme, useTheme } from '@mui/material/styles';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
@@ -9,17 +10,19 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import Chip from '@mui/material/Chip';
 import { FC } from "react";
 import { Box, Button, MenuItem, Select, TextField } from "@mui/material"
-import { Controller, useForm } from "react-hook-form"
-import { appConfigAtom, atomLangSpecifiConfig, availableLanguagesAtom, codeToJpnameAtom, defaultInput, getLanguageName, LangSpecifiConfig, nonAlphabeticalLanguageMenuItem, TranslateConfig, translateCurrentAtom, TranslateLanguages } from "@/ts/jotai";
+import { Controller, useForm, useWatch } from "react-hook-form"
+import { appConfigAtom, atomHistory, atomLangSpecifiConfig, availableLanguagesAtom, codeToJpnameAtom, defaultInput, getLanguageName, LangSpecifiConfig, nonAlphabeticalLanguageMenuItem, outputWindowAtom, TranslateConfig, translateCurrentAtom, TranslateLanguages } from "@/ts/jotai";
 import cld from "cld";
 import { APIURL, AppScriptResponse, emptyInput, translateIntoArray, TranslateMulti, translatePerLine } from "@/ts/k";
 import { translateUI } from "@/ts/tagengo";
-import { useAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import SelectInput from "@mui/material/Select/SelectInput";
 import ISO6391 from "iso-639-1"
 import fetcher from './api/fetcher';
 import { concatBy, concatLines, gate, urlAddQuery, zip } from '@/ts/util';
 import styles from "../styles/translate.module.css"
+import MultiLineTranslation from './multiTranslation';
+import { propconst } from '@/ts/css';
 
 export default function Translate() {
   return(
@@ -36,6 +39,7 @@ const InputWindow: FC = () => {
   const {getValues, formState: {isValid, errors}, control, handleSubmit} = useForm<TranslateMulti>({
     defaultValues: defaultInput
   })
+  const useWatchValue = useWatch({control})
   const [appconfig] = useAtom(appConfigAtom)
   const translator = translateUI(appconfig.lang)
   const [transAtom, setTransAtom] = useAtom(translateCurrentAtom)
@@ -77,7 +81,7 @@ const InputWindow: FC = () => {
       submit(getValues())
     }
   }
-  return(
+  return(<>
     <Box
       component="form"
       onSubmit={handleSubmit(submit)}
@@ -96,6 +100,9 @@ const InputWindow: FC = () => {
               id="source-select"
               labelId='source-select-label'
               onKeyDown={handleKeyDown}
+              MenuProps={{
+                PaperProps: propconst.PaperProps
+              }}
             >
               <MenuItem
                 value=""
@@ -106,7 +113,8 @@ const InputWindow: FC = () => {
                 return <MenuItem
                   value={code}
                   key={code}
-                >{nonAlphaLang(code)(appconfig.lang)}</MenuItem>
+                  sx={{whiteSpace: "normal"}}
+                  >{nonAlphaLang(code)(appconfig.lang)}</MenuItem>
               }
               )}
             </Select>
@@ -172,6 +180,9 @@ const InputWindow: FC = () => {
               defaultValue={defaultInput.to}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
+              MenuProps={{
+                PaperProps: propconst.PaperProps
+              }}
               // input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
 
               renderValue={(selected) => (
@@ -186,6 +197,7 @@ const InputWindow: FC = () => {
                 <MenuItem
                   key={code}
                   value={code}
+                  sx={{whiteSpace: "normal"}}
                   // onKeyDown={handleKeyDownMenuItem}
                 >
                   {nonAlphaLang(code)(appconfig.lang)}
@@ -197,7 +209,19 @@ const InputWindow: FC = () => {
       />
       <Button type='submit' disabled={!isValid} >{translator("translate")}</Button>
     </Box>
-  )
+    <InputPopout form={useWatchValue} />
+  </>)
+}
+
+const InputPopout: FC<{form: Partial<TranslateMulti>}> = ({form}) => {
+  const [showMe, setShowMe] = React.useState(true)
+  return(<>
+    {showMe
+    ?<>
+      <div className='src text'>{form.text??""}</div>
+    </>
+    :<></>}
+  </>)
 }
 
 const OutputWindow: React.FC = () => {
@@ -251,12 +275,14 @@ const OutputWindow: React.FC = () => {
 }
 
 const OutputWindowParallel: React.FC = () => {
+  const [windowConfig, setWindowConfig] = useAtom(outputWindowAtom)
   const [transAtom, setTransAtom] = useAtom(translateCurrentAtom)
   const [translations, setTranslations] = React.useState<Map<string, string>>(new Map())
   const [appconfig] = useAtom(appConfigAtom)
   const [codeToJpname] = useAtom(codeToJpnameAtom)
   const [availableLanguages] = useAtom(availableLanguagesAtom)
   const [langSpecifiConfig] = useAtom(atomLangSpecifiConfig)
+  const [history, setHistory] = useAtom(atomHistory)
   console.log("transAtom", transAtom)
   console.log("translations", translations)
   // const [translations, setTranslations] = React.useState<Map<string, {result: string, hasFinished: boolean}>>(new Map(transAtom.to.map(lang =>
@@ -278,7 +304,16 @@ const OutputWindowParallel: React.FC = () => {
       Promise.all(translateIntoArray(transAtom)(target)).then(res => {
         console.log("translateIntoArray return", res)
         translations.set(target, concatLines(res))
+        history.set(transAtom.text,
+          {
+            srclang: transAtom.from.length==0? undefined: transAtom.from,
+            trans: new Map([
+            ...history.get(transAtom.text)?.trans??[],
+            ...translations,
+          ])
+          })
         setTranslations(new Map([...translations]))
+        setHistory(new Map([...history]))
       })
     })
     const endtime = performance.now()
@@ -320,15 +355,15 @@ const OutputWindowParallel: React.FC = () => {
   ? <></>
   : (
     <div className="output-window">
-      <h1>{"output"}</h1>
-      <div className={styles.resultbox}>
+      <h1>{translateUI(appconfig.lang)("output")}</h1>
+      <div className={styles.resultbox+" resultbox"}>
         {Array.from(transAtom.to).map(lang => {
           const displayName = getLangName(lang)(appconfig.lang)+` (${lang})`
           // get_translation(lang)
           return(
             <>
             {/* <div className="target-and-result" key={lang}>*/}
-              <div className={styles.targetLang}>{displayName}</div>
+              <div className={styles.targetLang+" targetLang"}>{displayName}</div>
               <div className="units">
                 <MultiLineTranslation
                   lang={lang}
@@ -347,77 +382,76 @@ const OutputWindowParallel: React.FC = () => {
   )
 }
 
-type MLTs = {
-  text: string
-  lang: string
-}
-const MultiLineTranslation: React.FC<MLTs> = ({text, lang}) => {
-  const [specificonfig] = useAtom(atomLangSpecifiConfig)
-  const [appconfig] = useAtom(appConfigAtom)
-  const TranslateUnit: FC<{line: string}> = ({line}) =>
-    <div className='unit'>
-      {
-      // line.match(/^\s*$/)
-      // ? line
-      // :
-      SpecificOutput(specificonfig)(lang, line)}
-    </div>
-  return appconfig.result.multiline
-  ? <>
-    {text.split("\n").map((line,i) => <TranslateUnit line={line} key={i}/> )}
-  </>
-  : <TranslateUnit line={text}/>
-}
+// type MLTs = {
+//   text: string
+//   lang: string
+// }
+// const MultiLineTranslation: React.FC<MLTs> = ({text, lang}) => {
+//   const [specificonfig] = useAtom(atomLangSpecifiConfig)
+//   const [appconfig] = useAtom(appConfigAtom)
+//   const TranslateUnit: FC<{line: string}> = ({line}) =>
+//     <div className='unit'>
+//       {
+//       // line.match(/^\s*$/)
+//       // ? line
+//       // :
+//       SpecificOutput(specificonfig)(lang, line)}
+//     </div>
+//   return appconfig.result.multiline
+//   ? <>
+//     {text.split("\n").map((line,i) => <TranslateUnit line={line} key={i}/> )}
+//   </>
+//   : <TranslateUnit line={text}/>
+// }
 
 
 
-import {pinyin} from "pinyin-pro"
-const SpecificOutput = (config1: LangSpecifiConfig) => function NamedSpecificOutput(lang: string, line: string) {
-  const [specificonfig] = useAtom(atomLangSpecifiConfig)
-  const config = specificonfig
-  return (
-    ["zh", "zh-CN", "zh-TW"].includes(lang)
-    ? (config.zh.pinyin
-      ? config.zh.pinyin_display == "line"
-        ?
-        <>
-          {config.zh.pinyin_position == "below"
-          ?
-          <>
-          <div className='line'>{line}</div>
-          <div className="pinyin">{pinyin(line, {nonZh: "consecutive"})}</div>
-          </>
-          :
-          <>
-          <div className="pinyin">{pinyin(line, {nonZh: "consecutive"})}</div>
-          <div className='line'>{line}</div>
-          </>
-          }
-        </>
-        :<div className={styles.flex}>{
-          zip(line.trim(), pinyin(line.trim(), {
-            nonZh: "consecutive",
-            type: "array",
-          }))
-          .map(([han, py])=> <div key={han as string} className='ziyin'>
-            {config.zh.pinyin_position == "below"
-            ?
-            <>
-              <div className='hanzi'>{han as string}</div>
-              <div className='pinyin'>{py}</div>
-            </>
-            :<>
-              <div className='pinyin'>{py}</div>
-              <div className='hanzi'>{han as string}</div>
-            </>
-          }
-          </div>)
-        }</div>
-      : <>{line}</>
-    )
-    : <>{line}</>
-  )
-}
+// import {pinyin} from "pinyin-pro"
+// import { cssconst, propconst } from '@/ts/css';
+// import { chineseSegmentPinyinPair } from './api/chinese';
+// const SpecificOutput = (config1: LangSpecifiConfig) => function NamedSpecificOutput(lang: string, line: string) {
+//   const [specificonfig] = useAtom(atomLangSpecifiConfig)
+//   const config = specificonfig
+//   return (
+//     ["zh", "zh-CN", "zh-TW"].includes(lang)
+//     ? (config.zh.pinyin
+//       ? config.zh.pinyin_display == "line"
+//         ?
+//         <>
+//           {config.zh.pinyin_position == "below"
+//           ?
+//           <>
+//           <div className='line'>{line}</div>
+//           <div className="pinyin">{pinyin(line, {nonZh: "consecutive"})}</div>
+//           </>
+//           :
+//           <>
+//           <div className="pinyin">{pinyin(line, {nonZh: "consecutive"})}</div>
+//           <div className='line'>{line}</div>
+//           </>
+//           }
+//         </>
+//         :<div className={styles.flex}>{
+//           chineseSegmentPinyinPair(line)
+//           .map(([han, py])=> <div key={han as string} className='ziyin'>
+//             {config.zh.pinyin_position == "below"
+//             ?
+//             <>
+//               <div className='hanzi'>{han as string}</div>
+//               <div className='pinyin'>{py}</div>
+//             </>
+//             :<>
+//               <div className='pinyin'>{py}</div>
+//               <div className='hanzi'>{han as string}</div>
+//             </>
+//           }
+//           </div>)
+//         }</div>
+//       : <>{line}</>
+//     )
+//     : <>{line}</>
+//   )
+// }
 
 // type TranslationListItemProps = {
 //   translations: Map<string, string>

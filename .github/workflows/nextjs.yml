@@ -27,7 +27,7 @@ jobs:
       - name: Build Next.js app
         run: pnpm run build
         env:
-          URL_PREFIX: translate-multi-gh
+          NEXT_PUBLIC_APIURL: https://script.google.com/macros/s/AKfycbx23Gy7UiDJEfHi7--3cjgyVoAzlM2YRV8zEmiqjrZxNNW11ZbI7m_b7rnW1e02BrfJ-g/exec
 
       - name: Export Next.js app
         run: pnpm run export

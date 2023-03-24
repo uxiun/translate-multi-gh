@@ -1,6 +1,7 @@
-.targetLang {
+/* .targetLang {
   margin-right: 24px;
   max-width: 200px;
+  min-width: 5
   text-align: right;
 }
 .textinput {
@@ -12,4 +13,4 @@
 .resultbox {
   display: grid;
   grid-template-columns: auto 1fr;
-}
+} */

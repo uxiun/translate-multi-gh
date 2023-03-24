@@ -1,3 +1,8 @@
+:root {
+  --targetLang-width: auto
+}
+
+
 .input-window .textfield {
   font-size: 24px;
 }
@@ -10,4 +15,35 @@
 }
 .unit {
   min-height: 1em;
+}
+
+.session {
+  margin-bottom: 2em;
+}
+.session .src {
+  margin-bottom: 1em;
+}
+
+/*copied from translate.module.css*/
+.targetLang {
+  margin-right: 24px;
+  width: var(--targetLang-width);
+  word-break: keep-all;
+  text-align: right;
+}
+.textinput {
+  max-width: 50%;
+}
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+}
+.resultbox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+@media (max-width: 400px) {
+  .resultbox {
+    grid-template-columns: 1fr;
+  }
 }

@@ -9,6 +9,8 @@ export type UIid =
   |"form.select.multi.required"
   |"form length limit"
   |"translate"
+  |"output"
+  |"history"
 
 export const UIlanguageList: UIlang[] = ["en", "ja"]
 // export type UIlang = typeof UIlanguageList[number]
@@ -21,6 +23,8 @@ const translateUIrecord: Record<UIid, string[]> = {
   ,"form.select.from.label": ["source language", "原始言語（翻訳元）"]
   ,"form length limit": [`within ${defaultAppConfig.form.limit} characters`, `${defaultAppConfig.form.limit}字以内に収めてください`]
   ,"translate": ["translate", "翻訳"]
+  ,"output": ["Result", "結果"]
+  ,"history": ["History", "履歴"]
 }
 export const translateUI = (lang: UIlang) => (id: UIid) : string => {
   return ifelse(UIlanguageList.findIndex(e => e == lang))(i => i >= 0)

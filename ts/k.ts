@@ -1,9 +1,14 @@
 import fetcher from "@/pages/api/fetcher";
 // import fetcher from "@/app/api/fetcher";
 import { TranslateConfig } from "./jotai";
-import { concatBy, urlAddQuery } from "./util";
+import { concatBy, nextUrlPrefix, urlAddQuery } from "./util";
+import Segment from "novel-segment"
+import { IWord } from "novel-segment/lib/Segment";
+import { pinyin } from "pinyin-pro";
+import { cut, cutAll } from "@node-rs/jieba";
+import { LanguageCode } from "iso-639-1";
 
-export const APIURL = "https://script.google.com/macros/s/AKfycbx23Gy7UiDJEfHi7--3cjgyVoAzlM2YRV8zEmiqjrZxNNW11ZbI7m_b7rnW1e02BrfJ-g/exec"
+export const APIURL = process.env.NEXT_PUBLIC_APIURL??""
 
 export const fetchTranslation = (transAtom: TranslateMulti) => (target: string) => {
   // if (transAtom.text.match(/^\s*$/)) {
@@ -12,7 +17,7 @@ export const fetchTranslation = (transAtom: TranslateMulti) => (target: string) 
   //     text: transAtom.text
   //   }})
   // }
-  const url = urlAddQuery("https://script.google.com/macros/s/AKfycbx23Gy7UiDJEfHi7--3cjgyVoAzlM2YRV8zEmiqjrZxNNW11ZbI7m_b7rnW1e02BrfJ-g/exec")(
+  const url = urlAddQuery(APIURL)(
   transAtom.from.length === 0
   ? {
     target,
@@ -85,3 +90,13 @@ export type AppScriptResponse = {
   code: number
   text: string
 }
+
+export const pinyinDense = (chinese: string) => pinyin(chinese).split(" ").reduce((d,f)=>d+f, "")
+
+export type PinyinPairs = {
+  pairs: [string, string][]
+}
+
+export type GoogleTranslateLanguageCode = LanguageCode
+| "zh-CN"
+| "zh-TW"

@@ -10,6 +10,14 @@ export type TranslateConfig = {
   text: string
 } & TranslateLanguages
 
+export type WindowConfig = {
+  pinyin: boolean
+}
+export const defaultWindowConfig: WindowConfig = {
+  pinyin: true
+}
+export const outputWindowAtom = atom<WindowConfig>(defaultWindowConfig)
+
 export type AppConfig = {
   lang: UIlang
   form: {
@@ -17,6 +25,9 @@ export type AppConfig = {
   }
   result: {
     multiline: boolean
+  }
+  history: {
+    displayLimit: number
   }
 }
 export const defaultAppConfig: AppConfig = {
@@ -26,6 +37,9 @@ export const defaultAppConfig: AppConfig = {
   },
   result: {
     multiline: false
+  },
+  history: {
+    displayLimit: 3
   }
 }
 export const appConfigAtom = atom
@@ -39,6 +53,7 @@ export const translateCurrentAtom = atom<TranslateMulti>(defaultInput)
 
 export type LangSpecifiConfig = {
   zh: {
+    segment: boolean
     pinyin: boolean
     pinyin_display: "line"|"zi"
     pinyin_position: "above"|"below"
@@ -47,6 +62,7 @@ export type LangSpecifiConfig = {
 export const defaultLangSpecifiConfig: LangSpecifiConfig =
 {
   zh: {
+    segment: true,
     pinyin: true,
     pinyin_display: "line",
     pinyin_position: "below"
@@ -55,10 +71,16 @@ export const defaultLangSpecifiConfig: LangSpecifiConfig =
 
 export const atomLangSpecifiConfig = atom<LangSpecifiConfig>(defaultLangSpecifiConfig)
 
-
-
-
-
+export type TranslateHistory = Map<string, TranslateHistoryEntity>
+export type TranslateHistoryEntity = {
+  srclang?: string
+  trans: Map<string, string>
+}
+export const atomHistory = atom<TranslateHistory>(new Map())
+export const srcTextEquality = (text: string, history: TranslateHistory) => {
+  return [...history.keys()].includes(text)
+}
+export const atomChineseSegment = atom<string[]>([])
 
 
 

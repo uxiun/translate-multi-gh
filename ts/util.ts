@@ -1,3 +1,6 @@
+import { GetServerSidePropsContext } from "next";
+import { pinyin } from "pinyin-pro";
+
 export const zip = <T,U>(ts: T[]|string, us: U[]|string) => {
   const newlist: [T|string,U|string][] = [];
   [...ts].forEach((t,i)=>{
@@ -40,6 +43,41 @@ export const filetoMapRegExp = (splitter: string|RegExp) => (buf: Buffer): Map<s
   )
 }
 
+export const takeWhileSplit = (text: string) => (stopIf: (s: string) => boolean): [string, string] => {
+  let took = "";
+  [...text].forEach(s => {
+    if (stopIf(s)) return [took, text.slice(took.length)]
+    else took += s;
+  })
+  return [text, ""]
+}
+
+const REGEXconst = {
+  hanzi: /\p{sc=Han}/u
+}
+
+export const nextUrlPrefix = (context: GetServerSidePropsContext) => {
+  const host = context.req.headers.host ?? 'localhost:3000'
+  const protocol = /^localhost/.test(host) ? 'http' : 'https'
+  return `${protocol}://${host}/`
+}
+
+export const hanziPinyinPair = (hanzis: string) => {
+  const py = pinyin(hanzis, {
+    nonZh: "spaced",
+    type: "array"
+  })
+  return zip(hanzis, py)
+}
+
+export const sublistByLength = (length: number) => <T>(list: T[]): T[][] => {
+  // list.reduce(([subs, sub], e, i) => i < length
+  //   ? [subs, [...sub, e]]
+    // : [[...subs, sub]])
+  return [list.slice(0,length), ...sublistByLength(length)(list.slice(length))]
+}
+
+
 // export const pathValue = <T>(object: T) => (path: string[]) => {
 //   path.reduce((obj, prop)=>
 //     typeof obj == "object"
@@ -47,3 +85,4 @@ export const filetoMapRegExp = (splitter: string|RegExp) => (buf: Buffer): Map<s
 //     : typeof obj
 //     , object)
 // }
+

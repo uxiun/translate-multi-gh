@@ -1,6 +1,6 @@
 // "use client"
 
-import { appConfigAtom, atomLangSpecifiConfig, defaultAppConfig, defaultLangSpecifiConfig, LangSpecifiConfig } from "@/ts/jotai";
+import { AppConfig, appConfigAtom, atomLangSpecifiConfig, defaultAppConfig, defaultLangSpecifiConfig, LangSpecifiConfig } from "@/ts/jotai";
 import { Box, Checkbox, FormControl, FormControlLabel, FormGroup, InputLabel, MenuItem, Select } from "@mui/material";
 import { useAtom } from "jotai";
 import { Controller, Path, useForm, useWatch } from "react-hook-form";
@@ -9,14 +9,9 @@ import ISO6391 from "iso-639-1"
 import React, { FC, useEffect } from "react";
 import { anywayAt } from "@/ts/util";
 
-type Form = {
-  lang: string
-  multiline: boolean
-}
-
 export default function Config() {
   return(<>
-    <AppConfig/>
+    <AppConfigComponent/>
     <LangSpecifiConfig/>
   </>)
 }
@@ -28,7 +23,8 @@ const LangSpecifiConfig: React.FC = () => {
   const mapForTranslate = new Map<Path<Form>, string[]>([
     ["zh.pinyin", ["pinyin", "拼音"]],
     ["zh.pinyin_display", ["pinyin display", "拼音表示方式"]],
-    ["zh.pinyin_position", ["pinyin position", "拼音表示位置"]]
+    ["zh.pinyin_position", ["pinyin position", "拼音表示位置"]],
+    ["zh.segment", ["segment chinese", "中文単語分割"]],
   ])
   const {control} = useForm<Form>({
     defaultValues: specificonfig
@@ -45,18 +41,19 @@ const LangSpecifiConfig: React.FC = () => {
         pinyin: useWatchValue.zh?.pinyin ?? specificonfig.zh.pinyin,
         pinyin_display: useWatchValue.zh?.pinyin_display ?? specificonfig.zh.pinyin_display
         ,pinyin_position: useWatchValue.zh?.pinyin_position ?? specificonfig.zh.pinyin_position
+        ,segment: useWatchValue.zh?.segment ?? specificonfig.zh.segment
       }
     })
   }, [useWatchValue])
   const translateLabel = translateFromMap(appconfig.lang)(mapForTranslate)
-  const MUIcheckbox: FC<{name: Path<Form>}> = function NamedMUIcheckbox({name}) {return (
+  const MUIcheckbox: FC<{name: Path<Form>, checked: boolean}> = function NamedMUIcheckbox({name, checked}) {return (
     <Controller
       control={control}
       name={name}
       render={({field})=>(
           <FormControlLabel {...field}
             control={<Checkbox
-              checked={specificonfig.zh.pinyin}
+              checked={checked}
               />} label={ translateLabel(name)} />
       )}
     />
@@ -114,7 +111,8 @@ const LangSpecifiConfig: React.FC = () => {
       className="specifiConfig"
     >
       <FormGroup>
-        <MUIcheckbox name="zh.pinyin" />
+        <MUIcheckbox name="zh.pinyin" checked={specificonfig.zh.pinyin} />
+        <MUIcheckbox name="zh.segment" checked={specificonfig.zh.segment} />
       </FormGroup>
       <MUISelectOptionFilled name="zh.pinyin_display"/>
       <MUISelectOptionFilled name="zh.pinyin_position"/>
@@ -123,13 +121,16 @@ const LangSpecifiConfig: React.FC = () => {
 }
 
 
-
-const AppConfig: React.FC = () => {
+const AppConfigComponent: React.FC = () => {
+  type Form = {
+    lang: string
+    multiline: boolean
+  }
   const [appconfig, setAppconfig] = useAtom(appConfigAtom)
   const {getValues, control, watch} = useForm<Form>({
     defaultValues: {
-    lang: appconfig.lang,
-    multiline: appconfig.result.multiline,
+      lang: appconfig.lang,
+      multiline: appconfig.result.multiline,
   }})
   const formValue = useWatch({
     control,
@@ -149,9 +150,23 @@ const AppConfig: React.FC = () => {
     name=="lang"
     ? ["UI language", "表示言語"]
     : [name]
+  const translateLabel = translateFromMap(appconfig.lang)(new Map([
+    ["lang", ["UI language", "表示言語"]],
+    ["multiline", ["multiline output", "結果を複数行に"]]
+  ]) as Map<Path<Form>, string[]>)
 
-
-  return(
+  const MUIcheckbox: FC<{name: Path<Form>, checked: boolean}> = function NamedMUIcheckbox({name, checked}) {return (
+    <Controller
+      control={control}
+      name={name}
+      render={({field})=>(
+          <FormControlLabel {...field}
+            control={<Checkbox checked={checked} />}
+            label={ translateLabel(name)} />
+      )}
+    />
+  )}
+    return(
     <Box
       component={"form"}
       className="appConfig"
@@ -180,15 +195,16 @@ const AppConfig: React.FC = () => {
         )}
       />
       <FormGroup>
-        <Controller
+        {/* <Controller
           control={control}
           name="multiline"
           render={({field})=>(
               <FormControlLabel {...field}
-                control={<Checkbox  />} label={"multiline"} />
+                control={<Checkbox/>} label={"multiline"} />
 
           )}
-        />
+        /> */}
+        <MUIcheckbox name="multiline" checked={appconfig.result.multiline} />
       </FormGroup>
     </Box>
   )
